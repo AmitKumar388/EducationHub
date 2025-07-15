@@ -27,10 +27,10 @@ EduHub follows a modern full-stack architecture with clear separation between fr
 - **Production**: ESBuild for server bundling
 
 ### Database Layer
-- **ORM**: Drizzle ORM with PostgreSQL dialect
-- **Database**: PostgreSQL (configured via DATABASE_URL environment variable)
-- **Connection**: Neon Database serverless driver
-- **Migrations**: Drizzle Kit for schema management
+- **Database**: MongoDB with Mongoose ODM
+- **Connection**: MongoDB connection via MONGODB_URI environment variable
+- **Local Setup**: In-memory storage for development (switches to MongoDB in production)
+- **Schema**: Resource documents with flexible schema validation
 
 ## Key Components
 
@@ -48,15 +48,16 @@ Centralized data models and validation using Drizzle ORM and Zod:
 - **State Management**: React Query for API state with optimistic updates
 
 ### Backend Services
-- **Storage Layer**: Abstracted storage interface with in-memory implementation
+- **Storage Layer**: Abstracted storage interface with MongoDB implementation
 - **API Routes**: RESTful endpoints for resource management
 - **Middleware**: Request logging, error handling, and development tooling
+- **Development**: Uses in-memory storage for development, MongoDB for production
 
 ## Data Flow
 
 1. **Client Requests**: Frontend makes API calls using React Query
 2. **Server Processing**: Express routes handle requests and interact with storage layer
-3. **Database Operations**: Drizzle ORM manages PostgreSQL interactions
+3. **Database Operations**: Mongoose ODM manages MongoDB interactions
 4. **Response Handling**: JSON responses with proper error handling
 5. **Client Updates**: React Query manages cache invalidation and UI updates
 
@@ -76,7 +77,7 @@ Centralized data models and validation using Drizzle ORM and Zod:
 - **Utilities**: Class variance authority, clsx, date-fns
 
 ### Backend Dependencies
-- **Database**: Neon Database serverless with Drizzle ORM
+- **Database**: MongoDB with Mongoose ODM
 - **Validation**: Zod for runtime type checking
 - **Development**: Replit-specific tooling and error handling
 
@@ -90,14 +91,14 @@ Centralized data models and validation using Drizzle ORM and Zod:
 ### Development Environment
 - **Frontend**: Vite dev server with HMR
 - **Backend**: TSX for direct TypeScript execution
-- **Database**: Environment-based configuration via DATABASE_URL
+- **Database**: Environment-based configuration via MONGODB_URI
 - **Replit Integration**: Custom plugins for development experience
 
 ### Production Build
 - **Frontend**: Static assets built to `dist/public`
 - **Backend**: Bundled to `dist/index.js` with external dependencies
 - **Deployment**: Single Node.js process serving both frontend and API
-- **Database**: Production PostgreSQL via environment variables
+- **Database**: Production MongoDB via environment variables
 
 ### Key Architectural Decisions
 
@@ -105,7 +106,45 @@ Centralized data models and validation using Drizzle ORM and Zod:
 2. **Type Safety**: End-to-end TypeScript with Drizzle ORM integration
 3. **Component Architecture**: Radix UI for accessibility and customization
 4. **State Management**: React Query for server state, React Context for client state
-5. **Database Strategy**: PostgreSQL with ORM abstraction for flexibility
+5. **Database Strategy**: MongoDB with ODM abstraction for flexibility
 6. **Development Experience**: Hot reloading, error overlays, and Replit integration
+
+## MongoDB Setup Instructions for Local Development
+
+### Prerequisites
+1. Install MongoDB locally or use MongoDB Atlas
+2. Create a `.env` file in the root directory
+3. Add your MongoDB connection string: `MONGODB_URI=mongodb://localhost:27017/eduhub`
+
+### VS Code Development Setup
+1. **Download Project Files**:
+   - Click the three dots menu in Replit → "Download as ZIP"
+   - Extract to your desired location
+
+2. **Open in VS Code**:
+   - File → Open Folder → Select extracted project folder
+
+3. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+4. **Environment Setup**:
+   - Create `.env` file in root directory
+   - Add: `MONGODB_URI=mongodb://localhost:27017/eduhub`
+
+5. **Database Setup**:
+   - Ensure MongoDB is running locally
+   - Run seed script: `cd server && npx tsx seed.ts`
+
+6. **Start Development Server**:
+   ```bash
+   npm run dev
+   ```
+
+### Production MongoDB Setup
+- Use MongoDB Atlas or any cloud MongoDB service
+- Set `MONGODB_URI` environment variable with your connection string
+- The application will automatically switch to MongoDB in production
 
 The architecture prioritizes developer experience, type safety, and maintainability while providing a solid foundation for scaling the educational resource platform.

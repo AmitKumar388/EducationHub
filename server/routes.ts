@@ -46,7 +46,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single resource
   app.get("/api/resources/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const resource = await storage.getResource(id);
       
       if (!resource) {
@@ -62,7 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Download resource (increment counter and return download URL)
   app.post("/api/resources/:id/download", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const resource = await storage.getResource(id);
       
       if (!resource) {
@@ -86,7 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mock PDF download endpoint
   app.get("/api/download/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const resource = await storage.getResource(id);
       
       if (!resource) {

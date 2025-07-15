@@ -1,6 +1,5 @@
-import { resources, type Resource, type InsertResource } from "@shared/schema";
-import { db } from "./db";
-import { eq, ilike, or, desc, asc, and, sql } from "drizzle-orm";
+import { type Resource, type InsertResource } from "@shared/schema";
+import { connectToDatabase, ResourceModel } from "./db";
 
 export interface IStorage {
   getResources(filters?: {
@@ -10,9 +9,9 @@ export interface IStorage {
     search?: string;
     sortBy?: string;
   }): Promise<Resource[]>;
-  getResource(id: number): Promise<Resource | undefined>;
+  getResource(id: string): Promise<Resource | undefined>;
   createResource(resource: InsertResource): Promise<Resource>;
-  incrementDownloads(id: number): Promise<void>;
+  incrementDownloads(id: string): Promise<void>;
   getFeaturedResources(): Promise<Resource[]>;
   getResourceStats(): Promise<{
     notes: number;
@@ -142,7 +141,7 @@ export class MemStorage implements IStorage {
 
     sampleResources.forEach(resource => {
       const id = this.currentId++;
-      this.resources.set(id, { ...resource, id });
+      this.resources.set(id, { ...resource, id: id.toString() });
     });
   }
 
@@ -196,30 +195,31 @@ export class MemStorage implements IStorage {
     return results;
   }
 
-  async getResource(id: number): Promise<Resource | undefined> {
-    return this.resources.get(id);
+  async getResource(id: string): Promise<Resource | undefined> {
+    return this.resources.get(parseInt(id));
   }
 
   async createResource(insertResource: InsertResource): Promise<Resource> {
-    const id = this.currentId++;
+    const numId = this.currentId++;
     const resource: Resource = {
       ...insertResource,
-      id,
+      id: numId.toString(),
       downloads: 0,
       uploadedAt: new Date(),
       semester: insertResource.semester || null,
       fileType: insertResource.fileType || "pdf",
       rating: insertResource.rating || "0.0",
     };
-    this.resources.set(id, resource);
+    this.resources.set(numId, resource);
     return resource;
   }
 
-  async incrementDownloads(id: number): Promise<void> {
-    const resource = this.resources.get(id);
+  async incrementDownloads(id: string): Promise<void> {
+    const numId = parseInt(id);
+    const resource = this.resources.get(numId);
     if (resource) {
       resource.downloads += 1;
-      this.resources.set(id, resource);
+      this.resources.set(numId, resource);
     }
   }
 
@@ -254,89 +254,76 @@ export class DatabaseStorage implements IStorage {
     search?: string;
     sortBy?: string;
   }): Promise<Resource[]> {
-    // Build conditions array
-    const conditions = [];
+    await connectToDatabase();
+    
+    // Build MongoDB query
+    const query: any = {};
+    
     if (filters?.category && filters.category !== "all") {
-      conditions.push(eq(resources.category, filters.category));
+      query.category = filters.category;
     }
     if (filters?.subject && filters.subject !== "all") {
-      conditions.push(eq(resources.subject, filters.subject));
+      query.subject = filters.subject;
     }
     if (filters?.semester && filters.semester !== "all") {
-      conditions.push(eq(resources.semester, filters.semester));
+      query.semester = filters.semester;
     }
     if (filters?.search) {
-      conditions.push(
-        or(
-          ilike(resources.title, `%${filters.search}%`),
-          ilike(resources.description, `%${filters.search}%`),
-          ilike(resources.subject, `%${filters.search}%`)
-        )
-      );
+      query.$or = [
+        { title: { $regex: filters.search, $options: 'i' } },
+        { description: { $regex: filters.search, $options: 'i' } },
+        { subject: { $regex: filters.search, $options: 'i' } }
+      ];
     }
-    
-    // Build the query with conditions
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
     
     // Apply sorting
-    let orderBy;
+    let sortOption: any = { downloads: -1 }; // Default sort by downloads descending
     switch (filters?.sortBy) {
       case "latest":
-        orderBy = desc(resources.uploadedAt);
+        sortOption = { uploadedAt: -1 };
         break;
       case "rating":
-        orderBy = desc(resources.rating);
+        sortOption = { rating: -1 };
         break;
       case "downloads":
-        orderBy = desc(resources.downloads);
+        sortOption = { downloads: -1 };
         break;
       case "name":
-        orderBy = asc(resources.title);
+        sortOption = { title: 1 };
         break;
-      default:
-        orderBy = desc(resources.downloads);
     }
     
-    const query = db.select().from(resources);
-    
-    if (whereClause) {
-      return await query.where(whereClause).orderBy(orderBy);
-    } else {
-      return await query.orderBy(orderBy);
-    }
+    const resources = await ResourceModel.find(query).sort(sortOption);
+    return resources.map(this.transformMongoResource);
   }
 
-  async getResource(id: number): Promise<Resource | undefined> {
-    const [resource] = await db.select().from(resources).where(eq(resources.id, id));
-    return resource || undefined;
+  async getResource(id: string): Promise<Resource | undefined> {
+    await connectToDatabase();
+    const resource = await ResourceModel.findById(id);
+    return resource ? this.transformMongoResource(resource) : undefined;
   }
 
   async createResource(insertResource: InsertResource): Promise<Resource> {
-    const [resource] = await db
-      .insert(resources)
-      .values({
-        ...insertResource,
-        semester: insertResource.semester || null,
-        fileType: insertResource.fileType || "pdf",
-        rating: insertResource.rating || "0.0",
-      })
-      .returning();
-    return resource;
+    await connectToDatabase();
+    const resource = await ResourceModel.create({
+      ...insertResource,
+      semester: insertResource.semester || null,
+      fileType: insertResource.fileType || "pdf",
+      rating: insertResource.rating || "0.0",
+      downloads: insertResource.downloads || 0,
+    });
+    return this.transformMongoResource(resource);
   }
 
-  async incrementDownloads(id: number): Promise<void> {
-    await db
-      .update(resources)
-      .set({ downloads: sql`${resources.downloads} + 1` })
-      .where(eq(resources.id, id));
+  async incrementDownloads(id: string): Promise<void> {
+    await connectToDatabase();
+    await ResourceModel.findByIdAndUpdate(id, { $inc: { downloads: 1 } });
   }
 
   async getFeaturedResources(): Promise<Resource[]> {
-    return await db
-      .select()
-      .from(resources)
-      .orderBy(desc(resources.downloads))
-      .limit(6);
+    await connectToDatabase();
+    const resources = await ResourceModel.find().sort({ downloads: -1 }).limit(6);
+    return resources.map(this.transformMongoResource);
   }
 
   async getResourceStats(): Promise<{
@@ -345,14 +332,32 @@ export class DatabaseStorage implements IStorage {
     books: number;
     interviews: number;
   }> {
-    const allResources = await db.select().from(resources);
+    await connectToDatabase();
+    const allResources = await ResourceModel.find();
     return {
-      notes: allResources.filter(r => r.category === "notes").length,
-      pyqs: allResources.filter(r => r.category === "pyqs" || r.category === "company-pyqs").length,
-      books: allResources.filter(r => r.category === "books").length,
-      interviews: allResources.filter(r => r.category === "interview").length,
+      notes: allResources.filter((r: any) => r.category === "notes").length,
+      pyqs: allResources.filter((r: any) => r.category === "pyqs" || r.category === "company-pyqs").length,
+      books: allResources.filter((r: any) => r.category === "books").length,
+      interviews: allResources.filter((r: any) => r.category === "interview").length,
+    };
+  }
+
+  private transformMongoResource(mongoResource: any): Resource {
+    return {
+      id: mongoResource._id.toString(),
+      title: mongoResource.title,
+      description: mongoResource.description,
+      category: mongoResource.category,
+      subject: mongoResource.subject,
+      semester: mongoResource.semester,
+      fileUrl: mongoResource.fileUrl,
+      fileSize: mongoResource.fileSize,
+      fileType: mongoResource.fileType,
+      downloads: mongoResource.downloads,
+      rating: mongoResource.rating,
+      uploadedAt: mongoResource.uploadedAt,
     };
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MemStorage();

@@ -1,15 +1,37 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
+import mongoose from 'mongoose';
 
-neonConfig.webSocketConstructor = ws;
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/eduhub';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+let isConnected = false;
+
+export async function connectToDatabase() {
+  if (isConnected) {
+    return;
+  }
+
+  try {
+    await mongoose.connect(MONGODB_URI);
+    isConnected = true;
+    console.log('Connected to MongoDB');
+  } catch (error) {
+    console.error('Error connecting to MongoDB:', error);
+    throw error;
+  }
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+// Resource Schema
+const resourceSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  category: { type: String, required: true },
+  subject: { type: String, required: true },
+  semester: { type: String, default: null },
+  fileUrl: { type: String, required: true },
+  fileSize: { type: String, required: true },
+  fileType: { type: String, default: 'pdf' },
+  downloads: { type: Number, default: 0 },
+  rating: { type: String, default: '0.0' },
+  uploadedAt: { type: Date, default: Date.now },
+});
+
+export const ResourceModel = mongoose.model('Resource', resourceSchema);

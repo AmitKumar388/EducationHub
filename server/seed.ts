@@ -1,5 +1,4 @@
-import { db } from "./db";
-import { resources } from "@shared/schema";
+import { connectToDatabase, ResourceModel } from "./db";
 
 const sampleResources = [
   {
@@ -128,11 +127,14 @@ export async function seedDatabase() {
   try {
     console.log("Seeding database...");
     
+    // Connect to MongoDB
+    await connectToDatabase();
+    
     // Clear existing data
-    await db.delete(resources);
+    await ResourceModel.deleteMany({});
     
     // Insert sample data
-    await db.insert(resources).values(sampleResources);
+    await ResourceModel.insertMany(sampleResources);
     
     console.log("Database seeded successfully!");
   } catch (error) {
