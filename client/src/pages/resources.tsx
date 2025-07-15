@@ -15,9 +15,9 @@ export default function Resources() {
   const urlParams = new URLSearchParams(location.split('?')[1] || '');
   
   const [filters, setFilters] = useState({
-    category: urlParams.get('category') || '',
-    subject: '',
-    semester: '',
+    category: urlParams.get('category') || 'all',
+    subject: 'all',
+    semester: 'all',
     search: '',
     sortBy: 'popular',
   });
@@ -76,7 +76,7 @@ export default function Resources() {
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 {categories.map(cat => (
                   <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
                 ))}
@@ -88,7 +88,7 @@ export default function Resources() {
                 <SelectValue placeholder="All Subjects" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Subjects</SelectItem>
+                <SelectItem value="all">All Subjects</SelectItem>
                 {subjects.map(subject => (
                   <SelectItem key={subject} value={subject}>{subject}</SelectItem>
                 ))}
@@ -100,7 +100,7 @@ export default function Resources() {
                 <SelectValue placeholder="All Semesters" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Semesters</SelectItem>
+                <SelectItem value="all">All Semesters</SelectItem>
                 {semesters.map(semester => (
                   <SelectItem key={semester} value={semester}>{semester}</SelectItem>
                 ))}

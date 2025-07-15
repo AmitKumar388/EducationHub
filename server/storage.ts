@@ -205,6 +205,9 @@ export class MemStorage implements IStorage {
       id,
       downloads: 0,
       uploadedAt: new Date(),
+      semester: insertResource.semester || null,
+      fileType: insertResource.fileType || "pdf",
+      rating: insertResource.rating || "0.0",
     };
     this.resources.set(id, resource);
     return resource;
