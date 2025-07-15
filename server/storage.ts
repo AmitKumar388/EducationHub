@@ -1,4 +1,6 @@
 import { resources, type Resource, type InsertResource } from "@shared/schema";
+import { db } from "./db";
+import { eq, ilike, or, desc, asc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   getResources(filters?: {
@@ -244,4 +246,113 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getResources(filters?: {
+    category?: string;
+    subject?: string;
+    semester?: string;
+    search?: string;
+    sortBy?: string;
+  }): Promise<Resource[]> {
+    // Build conditions array
+    const conditions = [];
+    if (filters?.category && filters.category !== "all") {
+      conditions.push(eq(resources.category, filters.category));
+    }
+    if (filters?.subject && filters.subject !== "all") {
+      conditions.push(eq(resources.subject, filters.subject));
+    }
+    if (filters?.semester && filters.semester !== "all") {
+      conditions.push(eq(resources.semester, filters.semester));
+    }
+    if (filters?.search) {
+      conditions.push(
+        or(
+          ilike(resources.title, `%${filters.search}%`),
+          ilike(resources.description, `%${filters.search}%`),
+          ilike(resources.subject, `%${filters.search}%`)
+        )
+      );
+    }
+    
+    // Build the query with conditions
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    // Apply sorting
+    let orderBy;
+    switch (filters?.sortBy) {
+      case "latest":
+        orderBy = desc(resources.uploadedAt);
+        break;
+      case "rating":
+        orderBy = desc(resources.rating);
+        break;
+      case "downloads":
+        orderBy = desc(resources.downloads);
+        break;
+      case "name":
+        orderBy = asc(resources.title);
+        break;
+      default:
+        orderBy = desc(resources.downloads);
+    }
+    
+    const query = db.select().from(resources);
+    
+    if (whereClause) {
+      return await query.where(whereClause).orderBy(orderBy);
+    } else {
+      return await query.orderBy(orderBy);
+    }
+  }
+
+  async getResource(id: number): Promise<Resource | undefined> {
+    const [resource] = await db.select().from(resources).where(eq(resources.id, id));
+    return resource || undefined;
+  }
+
+  async createResource(insertResource: InsertResource): Promise<Resource> {
+    const [resource] = await db
+      .insert(resources)
+      .values({
+        ...insertResource,
+        semester: insertResource.semester || null,
+        fileType: insertResource.fileType || "pdf",
+        rating: insertResource.rating || "0.0",
+      })
+      .returning();
+    return resource;
+  }
+
+  async incrementDownloads(id: number): Promise<void> {
+    await db
+      .update(resources)
+      .set({ downloads: sql`${resources.downloads} + 1` })
+      .where(eq(resources.id, id));
+  }
+
+  async getFeaturedResources(): Promise<Resource[]> {
+    return await db
+      .select()
+      .from(resources)
+      .orderBy(desc(resources.downloads))
+      .limit(6);
+  }
+
+  async getResourceStats(): Promise<{
+    notes: number;
+    pyqs: number;
+    books: number;
+    interviews: number;
+  }> {
+    const allResources = await db.select().from(resources);
+    return {
+      notes: allResources.filter(r => r.category === "notes").length,
+      pyqs: allResources.filter(r => r.category === "pyqs" || r.category === "company-pyqs").length,
+      books: allResources.filter(r => r.category === "books").length,
+      interviews: allResources.filter(r => r.category === "interview").length,
+    };
+  }
+}
+
+export const storage = new DatabaseStorage();
