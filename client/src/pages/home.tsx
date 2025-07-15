@@ -51,10 +51,10 @@ export default function Home() {
             <div>
               <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2">
-                <li><a href="/resources?category=notes" className="text-slate-300 hover:text-white transition-colors">Study Notes</a></li>
-                <li><a href="/resources?category=pyqs" className="text-slate-300 hover:text-white transition-colors">PYQ Papers</a></li>
-                <li><a href="/resources?category=books" className="text-slate-300 hover:text-white transition-colors">Reference Books</a></li>
-                <li><a href="/resources?category=interview" className="text-slate-300 hover:text-white transition-colors">Interview Resources</a></li>
+                <li><a href="/notes" className="text-slate-300 hover:text-white transition-colors">Study Notes</a></li>
+                <li><a href="/pyqs" className="text-slate-300 hover:text-white transition-colors">PYQ Papers</a></li>
+                <li><a href="/books" className="text-slate-300 hover:text-white transition-colors">Reference Books</a></li>
+                <li><a href="/interview" className="text-slate-300 hover:text-white transition-colors">Interview Resources</a></li>
                 <li><a href="/resources?category=company-pyqs" className="text-slate-300 hover:text-white transition-colors">Company PYQs</a></li>
               </ul>
             </div>

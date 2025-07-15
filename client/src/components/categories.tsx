@@ -33,10 +33,21 @@ export default function Categories() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category) => (
+          {categories.map((category) => {
+            const getHref = (value: string) => {
+              switch (value) {
+                case 'notes': return '/notes';
+                case 'pyqs': return '/pyqs';
+                case 'books': return '/books';
+                case 'interview': return '/interview';
+                default: return `/resources?category=${value}`;
+              }
+            };
+            
+            return (
             <Link
               key={category.value}
-              href={`/resources?category=${category.value}`}
+              href={getHref(category.value)}
               className="group bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 hover:-translate-y-1 block"
             >
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 transition-colors ${categoryColors[category.value as keyof typeof categoryColors]}`}>
@@ -57,7 +68,8 @@ export default function Categories() {
                 </span>
               </div>
             </Link>
-          ))}
+          )
+          })}
         </div>
       </div>
     </section>

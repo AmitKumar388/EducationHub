@@ -112,15 +112,27 @@ export default function SearchFilter() {
                 Browse by Category
               </h3>
               <div className="space-y-2">
-                {categories.map((category) => (
-                  <button
-                    key={category.value}
-                    onClick={() => navigate(`/resources?category=${category.value}`)}
-                    className="block w-full text-left px-3 py-2 text-slate-600 dark:text-slate-400 hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                  >
-                    {category.label}
-                  </button>
-                ))}
+                {categories.map((category) => {
+                  const getHref = (value: string) => {
+                    switch (value) {
+                      case 'notes': return '/notes';
+                      case 'pyqs': return '/pyqs';
+                      case 'books': return '/books';
+                      case 'interview': return '/interview';
+                      default: return `/resources?category=${value}`;
+                    }
+                  };
+                  
+                  return (
+                    <button
+                      key={category.value}
+                      onClick={() => navigate(getHref(category.value))}
+                      className="block w-full text-left px-3 py-2 text-slate-600 dark:text-slate-400 hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                    >
+                      {category.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -19,10 +19,10 @@ export default function Header() {
 
   const navItems = [
     { href: "/", label: "Home" },
-    { href: "/resources?category=notes", label: "Notes" },
-    { href: "/resources?category=pyqs", label: "PYQs" },
-    { href: "/resources?category=books", label: "Books" },
-    { href: "/resources?category=interview", label: "Interview" },
+    { href: "/notes", label: "Notes" },
+    { href: "/pyqs", label: "PYQs" },
+    { href: "/books", label: "Books" },
+    { href: "/interview", label: "Interview" },
   ];
 
   return (
